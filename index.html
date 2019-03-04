@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link
+			href="https://cdn.bootcss.com/zTree.v3/3.5.40/css/zTreeStyle/zTreeStyle.css"
+			rel="stylesheet"
+		/>
+		<script src="https://cdn.bootcss.com/jquery/1.4.3/jquery.min.js"></script>
+		<script src="https://cdn.bootcss.com/zTree.v3/3.5.40/js/jquery.ztree.all.js"></script>
+	</head>
+	<body>
+		<p>Count numbers: <output id="result"></output></p>
+		<button onclick="startWorker()">Start Worker</button>
+		<button onclick="stopWorker()">Stop Worker</button>
+		<br /><br />
+		<script>
+			$.ajax({
+				url: './xzq.json',
+				type: 'GET',
+				// dataType: 'binary',
+				// responseType:'blob',
+				success: result => {
+					// let ua = new Uint8Array(result)
+					// console.log(ua.length)
+					let myWorker = new Worker('./worker.js')
+					myWorker.postMessage(result);
+				},
+				error: err => {
+					console.log(err)
+				}
+			})
+
+
+
+
+
+
+			let w
+			const js = `var i=0;
+				function timedCount()
+				{
+					i=i+1;
+					postMessage(i);
+					setTimeout("timedCount()",500);
+				}
+				timedCount();`
+			// 转成二进制对象
+			const blob = new Blob([js])
+			// 生成url
+			const url = window.URL.createObjectURL(blob)
+			// 加载url
+			// const worker = new Worker(url);
+			function startWorker() {
+				if (typeof Worker !== 'undefined') {
+					w = new Worker(url)
+					w.onmessage = function(event) {
+						document.getElementById('result').innerHTML = event.data
+					}
+					// worker线程报错
+					w.onerror = e => {
+						// e.filename - 发生错误的脚本文件名；e.lineno - 出现错误的行号；以及 e.message - 可读性良好的错误消息
+						console.log('onerror', e)
+					}
+				} else {
+					document.getElementById('result').innerHTML =
+						'Sorry, your browser does not support Web Workers...'
+				}
+			}
+
+			function stopWorker() {
+				w.terminate()
+			}
+		</script>
+	</body>
+</html>
