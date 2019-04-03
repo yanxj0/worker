@@ -1,73 +1,140 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<link
-			href="https://cdn.bootcss.com/zTree.v3/3.5.40/css/zTreeStyle/zTreeStyle.css"
-			rel="stylesheet"
-		/>
-		<script src="https://cdn.bootcss.com/jquery/1.4.3/jquery.min.js"></script>
-		<script src="https://cdn.bootcss.com/zTree.v3/3.5.40/js/jquery.ztree.all.js"></script>
-	</head>
-	<body>
-		<p>Count numbers: <output id="result"></output></p>
-		<button onclick="startWorker()">Start Worker</button>
-		<button onclick="stopWorker()">Stop Worker</button>
-		<br /><br />
-		<script>
-			$.ajax({
-				url: './xzq.json',
-				type: 'GET',
-				// dataType: 'binary',
-				// responseType:'blob',
-				success: result => {
-					let myWorker = new Worker('./worker.js')
-					myWorker.postMessage(result);
-				},
-				error: err => {
-					console.log(err)
+<head>
+	<link href="https://cdn.bootcss.com/zTree.v3/3.5.40/css/zTreeStyle/zTreeStyle.css" rel="stylesheet" />
+	<script src="https://cdn.bootcss.com/jquery/1.4.3/jquery.min.js"></script>
+	<script src="https://cdn.bootcss.com/zTree.v3/3.5.40/js/jquery.ztree.all.js"></script>
+	<script src="timer.js"></script>
+	<style>
+		html,
+		body {
+			height: 100%;
+			width: 100%;
+			padding: 0;
+			margin: 0;
+			overflow: hidden;
+		}
+
+		.treeRoot {
+			height: 80%;
+			width: 100%;
+			display: flex;
+			flex-direction: row;
+		}
+
+		.tree1 {
+			width: 50%;
+			overflow: auto;
+		}
+	</style>
+</head>
+
+<body>
+	<p>Count numbers: <output id="result"></output></p>
+	<button onclick="startWorker()">Start Worker</button>
+	<button onclick="stopWorker()">Stop Worker</button>
+	<br /><br />
+	<button onclick="uesWorker()">use Worker</button>
+	<button onclick="noWorker()">no Worker</button>
+	<div class="treeRoot">
+		<div id="tree1" class="tree1"></div>
+		<div id="tree2" class="tree1"></div>
+	</div>
+	<script>
+		let treeSource = [];
+		$.ajax({
+			url: './xzq.json',
+			type: 'GET',
+			success: result => {
+				treeSource = result;
+			},
+			error: err => {
+				console.log(err)
+			}
+		})
+
+		function uesWorker() {
+			let myWorker = new Worker('./worker.js')
+			myWorker.postMessage([...treeSource]);
+			myWorker.onmessage = function (evt) {
+				myWorker.terminate();
+				let { data } = evt;
+				console.log(data);
+				$.fn.zTree.init($("#tree1"), {}, data);
+			}
+		}
+
+		function noWorker() {
+			let source = [];
+			extraction([...treeSource], source)
+			let data = handle(source);
+			$.fn.zTree.init($("#tree2"), {}, data);
+		}
+
+		// 以下部分与worker.js中一样
+		const dics = [4, 6, 9, 12]
+		const start = 0
+		function handle(data) {
+			let resArr = [];
+			for (let i = 0; i < data.length;) {
+				let item = data[i],
+					res = {};
+				if (item.code.length === dics[start]) {
+					data.splice(i, 1);
+					res = {
+						code: item.code,
+						name: item.name
+					}
+					let childs = getLowRegion(data, item.code, start + 1);
+					childs.length && (res.children = childs);
+					resArr.push(res);
+				}
+				else {
+					i++
+				}
+			}
+			return resArr;
+		}
+		function getLowRegion(data, pCode, dicIndex) {
+			let resArr = [],
+				dic = dics[dicIndex]
+			for (let i = 0; i < data.length;) {
+				let item = data[i];
+				let codeStr = item.code.toString();
+				let res = {};
+				if (codeStr.length === dic && codeStr.indexOf(pCode) > -1) {
+					data.splice(i, 1);
+					res = {
+						code: item.code,
+						name: item.name
+					};
+					if (dicIndex < dics.length) {
+						let childs = getLowRegion(data, item.code, dicIndex + 1);
+						childs.length && (res.children = childs);
+					}
+					resArr.push(res);
+				}
+				else {
+					i++
+				}
+			}
+			return resArr;
+		}
+
+		function extraction(data, resArr) {
+			data.map(item => {
+				let { Code, title, children } = item;
+				resArr.push({
+					name: title,
+					code: Code
+				});
+				if (children && children.length) {
+					extraction(children, resArr);
 				}
 			})
+		}
 
+	</script>
+</body>
 
-
-
-
-
-			let w
-			const js = `var i=0;
-				function timedCount()
-				{
-					i=i+1;
-					postMessage(i);
-					setTimeout("timedCount()",500);
-				}
-				timedCount();`
-			// 转成二进制对象
-			const blob = new Blob([js])
-			// 生成url
-			const url = window.URL.createObjectURL(blob)
-			// 加载url
-			// const worker = new Worker(url);
-			function startWorker() {
-				if (typeof Worker !== 'undefined') {
-					w = new Worker(url)
-					w.onmessage = function(event) {
-						document.getElementById('result').innerHTML = event.data
-					}
-					// worker线程报错
-					w.onerror = e => {
-						// e.filename - 发生错误的脚本文件名；e.lineno - 出现错误的行号；以及 e.message - 可读性良好的错误消息
-						console.log('onerror', e)
-					}
-				} else {
-					document.getElementById('result').innerHTML =
-						'Sorry, your browser does not support Web Workers...'
-				}
-			}
-
-			function stopWorker() {
-				w.terminate()
-			}
-		</script>
-	</body>
 </html>
