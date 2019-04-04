@@ -2,31 +2,10 @@ self.onmessage = function(e) {
 	let {data} = e;
     let resArr = [];
     extraction(data, resArr);
-    postMessage(handle(resArr));
+    postMessage(getLowRegion(resArr,"42",start));
 }
-const dics = [4, 6, 9, 12]
-const start = 0
-function handle(data) {
-    let resArr = [];
-	for (let i = 0; i < data.length; ) {
-		let item = data[i],
-			res = {};
-		if (item.code.length === dics[start]) {
-			data.splice(i,1);
-			res = {
-				code: item.code,
-				name: item.name
-			}
-            let childs = getLowRegion(data, item.code, start + 1);
-            childs.length && (res.children = childs);
-            resArr.push(res);
-        }
-        else{
-            i++
-        }
-    }
-    return resArr;
-}
+const dics = [4, 6, 9, 12];
+const start = 0;
 function getLowRegion(data, pCode, dicIndex) {
     let resArr = [],
         dic = dics[dicIndex]
