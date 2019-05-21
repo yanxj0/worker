@@ -1,7 +1,8 @@
 self.onmessage = function(e) {
-	let {data} = e;
+    let {data} = e;
+    let source = JSON.parse(ab2str(data));
     let resArr = [];
-    extraction(data, resArr);
+    extraction(source, resArr);
     postMessage(getLowRegion(resArr,"42",start));
 }
 const dics = [4, 6, 9, 12];
@@ -43,4 +44,12 @@ function extraction(data, resArr) {
             extraction(children,resArr);
         }
     })
+}
+
+// ArrayBuffer转为字符串，参数为ArrayBuffer对象
+function ab2str(buf) {
+    let u8a = new Uint8Array(buf);
+    let decoder = new TextDecoder();
+    return decoder.decode(u8a);
+    // return String.fromCharCode.apply(null, u8a);//调用栈溢出
 }

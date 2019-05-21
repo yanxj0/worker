@@ -42,7 +42,8 @@
 	</div>
 	<script>
 		let treeSource = [];
-		$.ajax({
+		let ab;
+		/* $.ajax({
 			url: './xzq.json',
 			type: 'GET',
 			success: result => {
@@ -51,11 +52,32 @@
 			error: err => {
 				console.log(err)
 			}
-		})
+		}) */
+
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', './xzq.json', true);
+		xhr.responseType = 'arraybuffer';
+
+		xhr.onload = function(e) {
+			if (xhr.status == 200) {
+				ab = xhr.response;
+				// treeSource = JSON.parse(ab2str(ab));
+			}
+		};
+
+		xhr.send();
+
+		// ArrayBuffer转为字符串，参数为ArrayBuffer对象
+		function ab2str(buf) {
+			let u8a = new Uint8Array(buf);
+			let decoder = new TextDecoder();
+        	return decoder.decode(u8a);
+			// return String.fromCharCode.apply(null, u8a);//调用栈溢出
+		}
 
 		function uesWorker() {
 			let myWorker = new Worker('./worker.js')
-			myWorker.postMessage([...treeSource]);
+			myWorker.postMessage(ab, [ab]);
 			myWorker.onmessage = function (evt) {
 				myWorker.terminate();
 				let { data } = evt;
