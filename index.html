@@ -68,6 +68,7 @@
 		xhr.send();
 
 		// ArrayBuffer转为字符串，参数为ArrayBuffer对象
+		//https://stackoverflow.com/questions/6965107/converting-between-strings-and-arraybuffers
 		function ab2str(buf) {
 			let u8a = new Uint8Array(buf);
 			let decoder = new TextDecoder();
